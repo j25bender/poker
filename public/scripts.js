@@ -3,15 +3,13 @@ const dataInput = document.getElementById('pokerData');
 dataInput.addEventListener('change', handleFiles, false);
 
 function handleFiles(event) {
-  console.log(event)
   const file = event.target.files[0];
-  console.log(file)
-
   const reader = new FileReader();
-  console.log(file)
 
   reader.onload = function(event) {
-    console.log(event.target.result)
+    const dataString = event.target.result;
+    // console.log(dataString)
+    cleanData(dataString)
   }
 
   reader.readAsText(file);
@@ -22,4 +20,25 @@ function handleFiles(event) {
   //     fileList
   //   })
   // })
+}
+
+const cleanData = (data) => {
+  const newLinesRemoved = data.replace(/\r?\n|\r/g, ' ');
+  const dataArray = newLinesRemoved.split(' ');
+  const pokerData = {data:[]};
+  let i = 1
+  let last = pokerData.data.length;
+  for(i; i <= dataArray.length; i++) {
+    let playerHand = dataArray.slice(i - 1, i + 4)
+    if(i % 2 != 0) {
+      pokerData.data.push({})
+      Object.assign(pokerData.data[last], {'black': playerHand})
+    } else {
+      Object.assign(pokerData.data[last], {'white': playerHand})
+      last = last + 1
+    }
+    i = i + 4
+  }
+  console.log(pokerData.data)
+  return pokerData.data
 }
