@@ -66,31 +66,6 @@ const replaceFaceCards = (dataArray) => {
   return faceCardValueArray;
 }
 
-const evaluateHand = (cleanData) => {
-  const results = cleanData.map( (round, i) => {
-    const playerKeys = Object.keys(round)
-    let checkHand = playerKeys.map( player => {
-      const firstCard = round[player][0]
-      const firstCardSuit = firstCard.slice(firstCard.length - 1)
-
-      const sortedCards = sortCards(round[player])
-      const straight = consecutiveValueCheck(sortedCards)
-
-      const numMatchingSuit = sortedCards.filter( card => {
-        return card.includes(firstCardSuit)
-      })
-
-      if(numMatchingSuit.length === 5) {
-        return {player, cards: sortedCards, matchingSuit: true, ...straight}
-      } else {
-        return {player, cards: sortedCards, matchingSuit: false, ...straight}
-      }
-    })
-    return royalCheck(checkHand)
-  })
-  return results
-}
-
 const sortCards = (cards) => {
   const sortedCards = cards.sort( (a, b) => {
     a = a.slice(0, a.length - 1)
@@ -100,18 +75,70 @@ const sortCards = (cards) => {
   return sortedCards
 }
 
+const evaluateHand = (cleanData) => {
+  const results = cleanData.map( (round, i) => {
+    const playerKeys = Object.keys(round)
+    let checkHand = playerKeys.map( player => {
+      const firstCard = round[player][0]
+      const firstCardSuit = firstCard.slice(firstCard.length - 1)
+
+      const sortedCards = sortCards(round[player])
+      const straight = consecutiveValueCheck(sortedCards)
+      const flush = matchingSuitCheck(sortedCards, firstCardSuit)
+      const matchObject = matchValueCheck(sortedCards)
+        
+      return {player, cards: sortedCards, ...flush, ...straight, ...matchObject}
+    })
+    return royalCheck(checkHand)
+  })
+  return results
+}
+
+const matchingSuitCheck = (sortedCards, firstCardSuit) => {
+  const matchingSuit = sortedCards.filter( card => {
+    return card.includes(firstCardSuit)
+  })
+  return matchingSuit.length === 5 ? {matchingSuit: true} : {matchingSuit: false}
+}
+
 const consecutiveValueCheck = (sortedCards) => {
   let straight = sortedCards.map( (card, i) => {
-    let previousValue = parseInt(card.slice(0, card.length - 1)) + 1
-    let nextCardValue = i < 4 ? parseInt(sortedCards[i + 1].slice(0, card.length - 1))                            : parseInt(sortedCards[i].slice(0, card.length - 1)) + 1
-    
-    if(previousValue === nextCardValue && i <= 4) {
-      return true 
-    } else {
-      return false
-    }
+    const len = card.length
+    let prevCard = parseInt(card.slice(0, len)) + 1
+    let nextCard = i < 4 ? parseInt(sortedCards[i + 1].slice(0, len)) : null
+                              
+    return prevCard === nextCard ? true : false
   })
   return straight = !straight.includes(false) ? {straight: true} : {straight: false}
+}
+
+const matchValueCheck = (sortedCards) => {
+  const cardArray = sortedCards.toString().replace(/[A-Z]/g, '').split(',')
+  const match = cardArray.filter( (card, i) => {
+    if(card === cardArray[i + 1] || card === cardArray[i - 1]) { return card }
+  })
+  const noMatch = cardArray.filter( card => !match.includes(card))
+  const matchObject = { fullHouse: false, 
+                        fourOfAKind: false, 
+                        twoPair: false, 
+                        threeOfAKind: false, 
+                        pair: false, 
+                        match,
+                        noMatch }
+  if(match.length === 5) {
+    matchObject.fullHouse = true
+  } else if (match.length === 4 && match[0] === match[3]) {
+    matchObject.fourOfAKind = true
+  } else if (match.length === 4 && match[0] != match[3]) {
+    matchObject.twoPair = true
+  } else if (match.length === 3) {
+    matchObject.threeOfAKind = true
+  } else if (match.length === 2) {
+    matchObject.pair = true
+  } else {
+    matchObject.highCard = cardArray[4]
+  }
+  return matchObject
 }
 
 const royalCheck = (checkHand) => {
