@@ -75,20 +75,21 @@ const evaluateHand = (cleanData) => {
 
       const sortedCards = sortCards(round[player])
       const straight = consecutiveValueCheck(sortedCards)
-
-      const numMatchingSuit = sortedCards.filter( card => {
-        return card.includes(firstCardSuit)
-      })
-
-      if(numMatchingSuit.length === 5) {
-        return {player, cards: sortedCards, matchingSuit: true, ...straight}
-      } else {
-        return {player, cards: sortedCards, matchingSuit: false, ...straight}
-      }
+      const flush = matchingSuitCheck(sortedCards, firstCardSuit)
+        
+      return {player, cards: sortedCards, ...flush, ...straight}
     })
     return royalCheck(checkHand)
   })
+  console.log(results)
   return results
+}
+
+const matchingSuitCheck = (sortedCards, firstCardSuit) => {
+  const matchingSuit = sortedCards.filter( card => {
+    return card.includes(firstCardSuit)
+  })
+  return matchingSuit.length === 5 ? {matchingSuit: true} : {matchingSuit: false}
 }
 
 const sortCards = (cards) => {
@@ -101,17 +102,35 @@ const sortCards = (cards) => {
 }
 
 const consecutiveValueCheck = (sortedCards) => {
+  const pairArray = [], threeOfAKind = [], fourOfAKind = []
   let straight = sortedCards.map( (card, i) => {
-    let previousValue = parseInt(card.slice(0, card.length - 1)) + 1
-    let nextCardValue = i < 4 ? parseInt(sortedCards[i + 1].slice(0, card.length - 1))                            : parseInt(sortedCards[i].slice(0, card.length - 1)) + 1
+    const len = card.length
+    let prevCard = parseInt(card.slice(0, len)) + 1
+    let nextCard = i < 4 ? parseInt(sortedCards[i + 1].slice(0, len)) : null
+    let thirdCard = i < 3 ? parseInt(sortedCards[i + 2].slice(0, len)) : null
+
+    const matchObject = { prevCard: prevCard - 1, 
+                          nextCard,
+                          thirdCard, 
+                          pairArray, 
+                          threeOfAKind,
+                          fourOfAKind }
+
+    matchValueCheck(matchObject)
     
-    if(previousValue === nextCardValue && i <= 4) {
-      return true 
-    } else {
-      return false
-    }
+    return prevCard === nextCard ? true : false
   })
   return straight = !straight.includes(false) ? {straight: true} : {straight: false}
+}
+
+const matchValueCheck = (matchObject) => {
+  const {prevCard, nextCard, thirdCard, pairArray, threeOfAKind, fourOfAKind} = matchObject
+  if(prevCard === nextCard) {
+    pairArray.push(prevCard, nextCard)
+    return pairArray
+  } else if (prevCard != nextCard) {
+    // pairArray.length > 5 ? pairArray.pop() : pairArray
+  }
 }
 
 const royalCheck = (checkHand) => {
