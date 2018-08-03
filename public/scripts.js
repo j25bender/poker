@@ -8,7 +8,6 @@ function handleFiles(event) {
 
   reader.onload = function(event) {
     const dataString = event.target.result;
-    // console.log(dataString)
     cleanData(dataString)
   }
 
@@ -72,6 +71,7 @@ const sortCards = (cards) => {
     b = b.slice(0, b.length - 1)
     return a - b
   })
+  console.log(sortedCards)
   return sortedCards
 }
 
@@ -86,19 +86,49 @@ const evaluateHand = (cleanData) => {
       const straight = consecutiveValueCheck(sortedCards)
       const flush = matchingSuitCheck(sortedCards, firstCardSuit)
       const matchObject = matchValueCheck(sortedCards)
+      const straightFlush = straightFlushCheck(straight, flush)
         
-      return {player, cards: sortedCards, ...flush, ...straight, ...matchObject}
+      return {player, cards: sortedCards, ...straightFlush, ...flush, ...straight, ...matchObject}
     })
-    return royalCheck(checkHand)
+    return highCardCheck(royalCheck(checkHand))
   })
-  return results
+  return compareCards(results)
+}
+
+const highCardCheck = (players) => {
+  const black = players[0], white = players[1]
+  if(black.noMatch.length && white.noMatch.length) {
+    const combineValues = black.noMatch.concat(white.noMatch)
+    const allSorted = sortCards(combineValues).reverse()
+    const cardArray = allSorted.toString().replace(/[A-Z]/g, '').split(',')
+    const findHighest = cardArray.find( (val, i) => val > cardArray[i + 1])
+
+    const blackArray = black.noMatch.toString().replace(/[A-Z]/g, '').split(',')
+    const whiteArray = white.noMatch.toString().replace(/[A-Z]/g, '').split(',')
+    const tieCheck = blackArray.every((value, index) => value === whiteArray[index])
+
+    if(blackArray.includes(findHighest) && !whiteArray.includes(findHighest)) {
+      black['highCard'] = true
+      white['highCard'] = false
+    } else if (!blackArray.includes(findHighest) && whiteArray.includes(findHighest)) {
+      white['highCard'] = true
+      black['highCard'] = false
+    } else if (tieCheck) {
+      white['highCard'] = 'Tie.'
+      black['highCard'] = 'Tie.'
+    }
+  } else {
+    white['highCard'] = false
+    black['highCard'] = false
+  }
+  return players
 }
 
 const matchingSuitCheck = (sortedCards, firstCardSuit) => {
   const matchingSuit = sortedCards.filter( card => {
     return card.includes(firstCardSuit)
   })
-  return matchingSuit.length === 5 ? {matchingSuit: true} : {matchingSuit: false}
+  return matchingSuit.length === 5 ? {flush: true} : {flush: false}
 }
 
 const consecutiveValueCheck = (sortedCards) => {
@@ -114,29 +144,39 @@ const consecutiveValueCheck = (sortedCards) => {
 
 const matchValueCheck = (sortedCards) => {
   const cardArray = sortedCards.toString().replace(/[A-Z]/g, '').split(',')
+  const noMatch = []
   const match = cardArray.filter( (card, i) => {
-    if(card === cardArray[i + 1] || card === cardArray[i - 1]) { return card }
+    if(card === cardArray[i + 1] || card === cardArray[i - 1]) {
+      return card
+    } else { noMatch.push(card) }
   })
-  const noMatch = cardArray.filter( card => !match.includes(card))
+  const matchTotal = matchTotals(cardArray, match)
   const matchObject = { fullHouse: false, 
                         fourOfAKind: false, 
                         twoPair: false, 
                         threeOfAKind: false, 
                         pair: false, 
                         match,
-                        noMatch }
+                        matchTotal,
+                        noMatch: [],
+                        badHand: false }
   if(match.length === 5) {
     matchObject.fullHouse = true
   } else if (match.length === 4 && match[0] === match[3]) {
+    const q = matchObject.noMatch.push(cardArray.replace(match.toString(), ''))
     matchObject.fourOfAKind = true
   } else if (match.length === 4 && match[0] != match[3]) {
+    const q = matchObject.noMatch.push(cardArray.replace(match.toString(), ''))
     matchObject.twoPair = true
   } else if (match.length === 3) {
+    const q = matchObject.noMatch.push(cardArray.replace(match.toString(), ''))
     matchObject.threeOfAKind = true
   } else if (match.length === 2) {
+    const q = matchObject.noMatch.push(cardArray.replace(match.toString(), ''))
     matchObject.pair = true
   } else {
-    matchObject.highCard = cardArray[4]
+    matchObject.badHand = true
+    matchObject.noMatch = sortedCards
   }
   return matchObject
 }
@@ -150,4 +190,52 @@ const royalCheck = (checkHand) => {
     }
   })
   return confirmRoyal
+}
+
+const straightFlushCheck = (straight, flush) => {
+  return straight.straight && flush.matchingSuit ? {straightFlush: true} : {straightFlush: false}
+}
+
+const matchTotals = (cardArray, match) => {
+  const matches = cardArray.reduce( (accu, card) => {
+    if(match.includes(card)) {
+      accu += parseInt(card)
+    }
+    return accu
+  }, 0)
+  return matches
+}
+
+const compareCards = (results) => {
+  const handRank = ['royal', 'straightFlush', 'fourOfAKind', 'fullHouse', 'flush', 
+  'straight', 'threeOfAKind', 'twoPair', 'pair' ]
+  console.log(results)
+  const numberOfRounds = Object.keys(results)
+
+  const determineWinner = numberOfRounds.map( (round, i) => {
+    const black = results[round][0], white = results[round][1]
+
+    const winningHand = handRank.map( i => {
+      const blackHand = black[i], whiteHand = white[i]
+      if( black.badHand === white.badHand && black.highCard === true ||
+          blackHand > whiteHand ||
+          blackHand === whiteHand && black.matchTotal > white.matchTotal ||
+          blackHand === whiteHand && black.matchTotal === white.matchTotal && black.highCard > white.highCard ) {
+        return 'Black wins.'
+      } else if ( white.badHand === black.badHand && white.highCard === true ||
+                  whiteHand > blackHand ||
+                  blackHand === whiteHand && black.matchTotal < white.matchTotal || 
+                  blackHand === whiteHand && black.matchTotal === white.matchTotal && black.highCard < white.highCard ||
+                  black.straight && white.straight && white.cards[0]) {
+        return 'White wins.'
+      } else if ( black.highCard === 'Tied.'  ||
+                  blackHand === whiteHand &&
+                  black.highCard === white.highCard &&
+                  black.noMatch === black.noMatch ) {
+        return 'Tie.'
+      }
+    })
+    return winningHand
+  })
+  console.log(determineWinner)
 }
