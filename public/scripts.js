@@ -248,5 +248,13 @@ const rankResults = (determineWinner) => {
     })
     return accu += findWin + '\n'
   }, '')
-  return bestHand
+  sendPost(bestHand)
+}
+
+const sendPost = async (bestHand) => {
+  await fetch('/api/v1/winner-results', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({bestHand})
+  })
 }
