@@ -18,7 +18,6 @@ app.get('/', (req, res) => {
 })
 
 app.post('/api/v1/winner-results', (req, res) => {
-  console.log('req', req.body.bestHand)
   fs.writeFile('output.txt', req.body.bestHand, (err) => {
     if (err) throw err
     console.log('The file has been saved!')

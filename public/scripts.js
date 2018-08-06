@@ -252,9 +252,11 @@ const rankResults = (determineWinner) => {
 }
 
 const sendPost = async (bestHand) => {
-  await fetch('/api/v1/winner-results', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({bestHand})
-  })
+  if(bestHand) {
+    await fetch('/api/v1/winner-results', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({bestHand})
+    })
+  }
 }
