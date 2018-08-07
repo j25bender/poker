@@ -1,4 +1,4 @@
-Clone the repository and run nodemon server.js from command line. The output.txt will be created and saved to the same directory that the repo is cloned to. 
+Clone the repository and run nodemon server.js from command line. The output.txt will be created and saved to the same directory that the repo is cloned to. Application runs on http://localhost:3000/
 
 A poker deck contains 52 cards. Each card has a suit of either clubs, diamonds, hearts, or spades (denoted C, D, H, S in the input data). Each card also has a value of either 2 through 10, jack, queen, king, or ace (denoted 2, 3, 4, 5, 6, 7, 8, 9, T, J, Q, K, A). For scoring purposes card values are ordered as above, with 2 having the lowest and ace the highest value. The suit has no impact on value.
 
